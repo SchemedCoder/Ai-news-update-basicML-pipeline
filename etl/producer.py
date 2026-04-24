@@ -1,17 +1,23 @@
 from kafka import KafkaProducer
-import requests, json
+import requests
+import json
+from config.config import API_KEY, KAFKA_BROKER, TOPIC
 
-API_KEY = "YOUR_API_KEY"
-
+# Kafka Producer
 producer = KafkaProducer(
-    bootstrap_servers='localhost:9092',
+    bootstrap_servers=KAFKA_BROKER,
     value_serializer=lambda v: json.dumps(v).encode('utf-8')
 )
 
-url = f"https://newsapi.org/v2/everything?q=artificial intelligence&apiKey={API_KEY}"
-data = requests.get(url).json()
+# News API URL
+url = f"https://newsapi.org/v2/everything?q=artificial intelligence&language=en&apiKey={API_KEY}"
 
-for article in data['articles']:
-    producer.send("ai_news", article)
+response = requests.get(url)
+data = response.json()
+
+# Send each article to Kafka
+for article in data.get('articles', []):
+    producer.send(TOPIC, article)
 
 producer.flush()
+print("✅ Data sent to Kafka topic")
